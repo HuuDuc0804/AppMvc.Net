@@ -1,3 +1,4 @@
+namespace App.Services;
 public class ProductService : List<ProductModel>
 {
     public ProductService()
