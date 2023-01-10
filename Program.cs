@@ -2,8 +2,14 @@ using System.Net;
 using App.ExtendMethods;
 using App.Services;
 using Microsoft.AspNetCore.Mvc.Razor;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Add DbContext
+builder.Services.AddDbContext<AppDbContext>(option => 
+    option.UseSqlServer(builder.Configuration.GetConnectionString("AppMvcConnectitonString")!)
+);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
