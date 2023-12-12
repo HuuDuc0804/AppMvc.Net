@@ -1,4 +1,6 @@
+using App.Models.Contacts;
 using Microsoft.EntityFrameworkCore;
+namespace App.Models;
 
 public class AppDbContext : DbContext
 {
@@ -13,4 +15,5 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
     }
+    public DbSet<ContactModel> Contacts => Set<ContactModel>();
 }

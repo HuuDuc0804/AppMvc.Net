@@ -28,3 +28,14 @@
 ```
 dotnet aspnet-codegenerator area Product
 ```
+
+## Gulp
+```
+npm init // Sinh ra file package.json
+npm install --global gulp-cli // Thêm command line cli
+
+npm install gulp // Cài đặt Gulp
+npm install node-sass postcss sass // Cài đặt package
+
+npm install gulp-sass gulp-less gulp-concat gulp-cssmin gulp-uglify rimraf gulp-postcss gulp-rename
+```
