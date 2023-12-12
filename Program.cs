@@ -1,17 +1,94 @@
 using System.Net;
+using App.Data;
 using App.ExtendMethods;
 using App.Models;
 using App.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Email
+builder.Services.AddOptions();
+builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
+builder.Services.AddSingleton<IEmailSender, SendMailService>();
 // Add DbContext
-builder.Services.AddDbContext<AppDbContext>(option => 
+builder.Services.AddDbContext<AppDbContext>(option =>
     option.UseSqlServer(builder.Configuration.GetConnectionString("AppMvcConnectitonString")!)
 );
 
+//Đăng ký Identity
+builder.Services.AddIdentity<AppUser, IdentityRole>()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/login/";
+    options.LogoutPath = "/logout/";
+    options.AccessDeniedPath = "/khongduoctruycap.html";
+});
+builder.Services.AddAuthentication()
+        .AddGoogle(options =>
+        {
+            var googleConfig = builder.Configuration.GetSection("Authentication:Google");
+            options.ClientId = googleConfig["ClientId"]!;
+            options.ClientSecret = googleConfig["ClientSecret"]!;
+
+            // mặc định: https://localhost:7073/signin-google
+            options.CallbackPath = "/dang-nhap-google";
+        })
+        .AddFacebook(options =>
+        {
+            var facebookConfig = builder.Configuration.GetSection("Authentication:Facebook");
+            options.AppId = facebookConfig["AppId"]!;
+            options.AppSecret = facebookConfig["AppSecret"]!;
+            options.CallbackPath = "/dang-nhap-facebook";
+
+        });
+
+// Đăng ký override Identity Erorr Describer (Custom)
+builder.Services.AddSingleton<IdentityErrorDescriber, AppIdentityErrorDescriber>();
+
+// Truy cập IdentityOptions
+builder.Services.Configure<IdentityOptions>(options =>
+{
+    // Thiết lập về Password
+    options.Password.RequireDigit = false; // Không bắt phải có số
+    options.Password.RequireLowercase = false; // Không bắt phải có chữ thường
+    options.Password.RequireNonAlphanumeric = false; // Không bắt ký tự đặc biệt
+    options.Password.RequireUppercase = false; // Không bắt buộc chữ in
+    options.Password.RequiredLength = 3; // Số ký tự tối thiểu của password
+    options.Password.RequiredUniqueChars = 1; // Số ký tự riêng biệt
+
+    // Cấu hình Lockout - khóa user
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5); // Khóa 5 phút
+    options.Lockout.MaxFailedAccessAttempts = 5; // Thất bại 5 lầ thì khóa
+    options.Lockout.AllowedForNewUsers = true;
+
+    // Cấu hình về User.
+    options.User.AllowedUserNameCharacters = // các ký tự đặt tên user
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+    options.User.RequireUniqueEmail = true;  // Email là duy nhất
+
+    // Cấu hình đăng nhập.
+    options.SignIn.RequireConfirmedEmail = true;            // Cấu hình xác thực địa chỉ email (email phải tồn tại)
+    options.SignIn.RequireConfirmedPhoneNumber = false;     // Xác thực số điện thoại
+    options.SignIn.RequireConfirmedAccount = true;
+
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("ViewManageMenu", builder =>
+    {
+        builder.RequireAuthenticatedUser();
+        builder.RequireRole(RoleName.Administrator);
+    });
+});
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
@@ -59,8 +136,10 @@ app.UseAuthentication(); // Xác định danh tính
 app.UseAuthorization();  // Xác định quyền truy cập
 
 // Routing
-app.UseEndpoints(enpoints => {
-    enpoints.MapGet("/sayhi", async context => {
+app.UseEndpoints(enpoints =>
+{
+    enpoints.MapGet("/sayhi", async context =>
+    {
         await context.Response.WriteAsync($"ASP.NET MVC: {DateTime.Now}");
     });
 });
@@ -89,11 +168,11 @@ app.MapControllerRoute(
 //     name: "firstRoute",
 //     pattern: "start-here/{controller}/{action}/{id?}", // start-here, start-here/1, start-here/123
 //     defaults: new {
-        // controller = "First",
-        // action = "ViewProduct",
-        // id = 3
+// controller = "First",
+// action = "ViewProduct",
+// id = 3
 //     }
 // );
- app.MapRazorPages();
+app.MapRazorPages();
 
 app.Run();
